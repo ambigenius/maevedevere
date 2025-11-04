@@ -100,7 +100,7 @@ const NewPost = () => {
   const [description, setDescription] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [metadataText, setMetadataText] = useState('{}');
-  const [metadataError, setMetadataError] = useState(null);
+  const [metadataError, setMetadataError] = useState<string | null>(null);
 
   // Type-specific fields
   const [text, setText] = useState('');
@@ -112,9 +112,9 @@ const NewPost = () => {
   // UI state
   const [testMode, setTestMode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState(null);
-  const [submitSuccess, setSubmitSuccess] = useState(null);
-  const [successUrl, setSuccessUrl] = useState(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+  const [successUrl, setSuccessUrl] = useState<string | null>(null);
 
   // Parse metadata JSON with error handling
   const metadata = useMemo(() => {
@@ -137,7 +137,7 @@ const NewPost = () => {
   const postData = useMemo((): PostData | null => {
     const now = new Date().toISOString();
     const base: Partial<BasePost> = {
-      type,
+      type: type as PostType,
       id: postId,
       slug,
       title,
@@ -220,7 +220,7 @@ const NewPost = () => {
   const isValid = validationErrors.length === 0;
 
   // Handle form submission
-  const handleSubmit = async (e: Event & { preventDefault: () => void }) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!isValid || !postData) {
       return;
