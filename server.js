@@ -89,7 +89,7 @@ app.get('/api/test', (req, res) => {
 
 // GET /api/list?folder=Words|Lines|Motion|Sound|All
 app.get('/api/list', async (req, res) => {
-  console.log('=== GET /api/list ===');
+  console.log('\n=== GET /api/list route handler EXECUTING ===');
   console.log('Query params:', req.query);
   
   try {
@@ -255,7 +255,7 @@ app.get('/api/file', async (req, res) => {
 
 // GET /api/about
 app.get('/api/about', async (req, res) => {
-  console.log('=== GET /api/about ===');
+  console.log('\n=== GET /api/about route handler EXECUTING ===');
   
   try {
     if (!GITHUB_TOKEN) {

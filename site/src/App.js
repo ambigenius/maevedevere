@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import HomePage from './HomePage';
+import './App.css';
+import HomePage from './HomePage.tsx';
 import AdminPage from './AdminPage';
 
 function App() {
