@@ -21,7 +21,7 @@
   align-items: center;
   justify-content: center;
   font-size: calc(10px + 2vmin);
-  color: white;
+  color: rgb(white);
 }
 
 .App-link {
@@ -35,4 +35,161 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.section-subtitle {
+  transition: color 0.2s;
+  cursor: pointer;
+}
+
+.section-subtitle:hover {
+  color: #FF914D; /* light burnt orange */
+}
+
+.flex-container {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+  padding-left: 3vw;
+  padding-right: 3vw;
+}
+
+.left-sections {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  flex: 2 1 0;
+  min-width: 0;
+}
+
+.right-wrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.row-buffer {
+  min-width: clamp(10px, 2vw, 40px);
+}
+
+@media (max-width: 900px) {
+  .flex-container {
+    flex-direction: column;
+    gap: 2rem;
+    padding-left: 1vw;
+    padding-right: 1vw;
+  }
+  .left-sections,
+  .right-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  .right-wrapper {
+    align-items: flex-end;
+    justify-content: flex-start;
+  }
+  .row-buffer {
+    min-height: 10px;
+    min-width: 0;
+    height: 10px;
+    width: 100%;
+  }
+}
+
+/* Image Component Styles */
+.image-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.single-image {
+  width: 600px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.image-carousel-container {
+  position: relative;
+  width: 600px;
+  margin: 0 auto;
+}
+
+.carousel-image-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.carousel-image {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  transition: opacity 0.3s ease;
+}
+
+.carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s ease, opacity 0.3s ease;
+  z-index: 10;
+  opacity: 0;
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.carousel-arrow:hover {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.carousel-arrow-left {
+  left: 10px;
+}
+
+.carousel-arrow-right {
+  right: 10px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.carousel-indicators {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 5;
 }
