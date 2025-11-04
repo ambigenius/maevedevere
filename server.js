@@ -52,10 +52,279 @@ app.use((req, res, next) => {
   next();
 });
 
+// Helper function to get GitHub API headers
+function getGitHubHeaders() {
+  if (!GITHUB_TOKEN) {
+    throw new Error('GITHUB_TOKEN not configured');
+  }
+  return {
+    'Authorization': `Bearer ${GITHUB_TOKEN}`,
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28'
+  };
+}
+
+// Helper function to handle GitHub API errors
+async function handleGitHubError(resp, context) {
+  if (!resp.ok) {
+    const errorData = await resp.json().catch(() => ({ message: resp.statusText }));
+    console.error(`ERROR: GitHub API error in ${context}`);
+    console.error(`Status: ${resp.status}`);
+    console.error(`Response:`, JSON.stringify(errorData, null, 2));
+    
+    if (resp.status >= 400 && resp.status < 500) {
+      return { status: resp.status, data: errorData };
+    } else {
+      return { status: 502, data: { error: 'GitHub API error', message: errorData.message || 'Bad gateway' } };
+    }
+  }
+  return null;
+}
+
 // Test route to verify server is receiving requests
 app.get('/api/test', (req, res) => {
   console.log('=== GET /api/test route called ===');
   res.json({ message: 'Server is working!', timestamp: new Date().toISOString() });
+});
+
+// GET /api/list?folder=Words|Lines|Motion|Sound|All
+app.get('/api/list', async (req, res) => {
+  console.log('=== GET /api/list ===');
+  console.log('Query params:', req.query);
+  
+  try {
+    const { folder } = req.query;
+    
+    if (!folder) {
+      console.error('ERROR: Missing required query parameter: folder');
+      return res.status(400).json({ error: 'Missing required query parameter: folder' });
+    }
+
+    const validFolders = ['Words', 'Lines', 'Motion', 'Sound', 'All'];
+    if (!validFolders.includes(folder)) {
+      console.error(`ERROR: Invalid folder value: ${folder}`);
+      return res.status(400).json({ 
+        error: 'Invalid folder value', 
+        validValues: validFolders 
+      });
+    }
+
+    if (!GITHUB_TOKEN) {
+      console.error('ERROR: GITHUB_TOKEN not configured');
+      return res.status(500).json({ error: 'GITHUB_TOKEN not configured' });
+    }
+
+    const foldersToFetch = folder === 'All' 
+      ? ['Words', 'Lines', 'Motion', 'Sound'] 
+      : [folder];
+
+    console.log(`Fetching folders: ${foldersToFetch.join(', ')}`);
+
+    const allFiles = [];
+    const headers = getGitHubHeaders();
+
+    for (const folderName of foldersToFetch) {
+      const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(folderName)}`;
+      console.log(`Fetching: ${apiUrl}`);
+
+      try {
+        const resp = await fetch(apiUrl, { headers });
+        const error = await handleGitHubError(resp, `list/${folderName}`);
+        
+        if (error) {
+          console.error(`Failed to fetch ${folderName}:`, error.status);
+          // Continue with other folders even if one fails
+          continue;
+        }
+
+        const data = await resp.json();
+        console.log(`Received ${Array.isArray(data) ? data.length : 0} items from ${folderName}`);
+
+        // Filter for .json files only
+        const jsonFiles = (Array.isArray(data) ? data : [])
+          .filter(item => item.type === 'file' && item.name.endsWith('.json'))
+          .map(item => ({
+            path: item.path,
+            name: item.name,
+            download_url: item.download_url
+          }));
+
+        console.log(`Found ${jsonFiles.length} JSON files in ${folderName}`);
+        allFiles.push(...jsonFiles);
+      } catch (err) {
+        console.error(`Error fetching ${folderName}:`, err.message);
+        // Continue with other folders
+      }
+    }
+
+    console.log(`Total files found: ${allFiles.length}`);
+    res.json(allFiles);
+
+  } catch (err) {
+    console.error('=== ERROR in /api/list ===');
+    console.error('Error message:', err.message);
+    console.error('Error stack:', err.stack);
+    res.status(500).json({ 
+      error: 'Unexpected server error',
+      message: err.message
+    });
+  }
+});
+
+// GET /api/file?path=<url-encoded path>
+app.get('/api/file', async (req, res) => {
+  console.log('=== GET /api/file ===');
+  console.log('Query params:', req.query);
+  
+  try {
+    const { path: filePath } = req.query;
+    
+    if (!filePath) {
+      console.error('ERROR: Missing required query parameter: path');
+      return res.status(400).json({ error: 'Missing required query parameter: path' });
+    }
+
+    if (!GITHUB_TOKEN) {
+      console.error('ERROR: GITHUB_TOKEN not configured');
+      return res.status(500).json({ error: 'GITHUB_TOKEN not configured' });
+    }
+
+    const decodedPath = decodeURIComponent(filePath);
+    console.log(`Fetching file: ${decodedPath}`);
+
+    const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(decodedPath)}`;
+    console.log(`GitHub API URL: ${apiUrl}`);
+
+    const headers = getGitHubHeaders();
+    const resp = await fetch(apiUrl, { headers });
+    
+    const error = await handleGitHubError(resp, `file/${decodedPath}`);
+    if (error) {
+      return res.status(error.status).json(error.data);
+    }
+
+    const data = await resp.json();
+    
+    if (data.type !== 'file') {
+      console.error(`ERROR: Path is not a file: ${decodedPath}`);
+      return res.status(400).json({ error: 'Path is not a file', path: decodedPath });
+    }
+
+    if (!data.content) {
+      console.error(`ERROR: File has no content: ${decodedPath}`);
+      return res.status(400).json({ error: 'File has no content', path: decodedPath });
+    }
+
+    // Decode base64 content
+    let decodedContent;
+    try {
+      const contentBuffer = Buffer.from(data.content, 'base64');
+      decodedContent = contentBuffer.toString('utf8');
+      console.log(`Decoded content length: ${decodedContent.length}`);
+    } catch (err) {
+      console.error(`ERROR: Failed to decode base64 content:`, err.message);
+      return res.status(400).json({ error: 'Failed to decode file content', path: decodedPath });
+    }
+
+    // Parse JSON
+    let parsedContent;
+    try {
+      parsedContent = JSON.parse(decodedContent);
+      console.log(`Successfully parsed JSON for: ${decodedPath}`);
+    } catch (err) {
+      console.error(`ERROR: Failed to parse JSON:`, err.message);
+      return res.status(400).json({ 
+        error: 'Failed to parse JSON content', 
+        path: decodedPath,
+        message: err.message 
+      });
+    }
+
+    res.json(parsedContent);
+
+  } catch (err) {
+    console.error('=== ERROR in /api/file ===');
+    console.error('Error message:', err.message);
+    console.error('Error stack:', err.stack);
+    res.status(500).json({ 
+      error: 'Unexpected server error',
+      message: err.message
+    });
+  }
+});
+
+// GET /api/about
+app.get('/api/about', async (req, res) => {
+  console.log('=== GET /api/about ===');
+  
+  try {
+    if (!GITHUB_TOKEN) {
+      console.error('ERROR: GITHUB_TOKEN not configured');
+      return res.status(500).json({ error: 'GITHUB_TOKEN not configured' });
+    }
+
+    const aboutPath = 'About/about.json';
+    console.log(`Fetching about file: ${aboutPath}`);
+
+    const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(aboutPath)}`;
+    console.log(`GitHub API URL: ${apiUrl}`);
+
+    const headers = getGitHubHeaders();
+    const resp = await fetch(apiUrl, { headers });
+    
+    const error = await handleGitHubError(resp, `about`);
+    if (error) {
+      return res.status(error.status).json(error.data);
+    }
+
+    const data = await resp.json();
+    
+    if (data.type !== 'file') {
+      console.error(`ERROR: About path is not a file: ${aboutPath}`);
+      return res.status(400).json({ error: 'About path is not a file', path: aboutPath });
+    }
+
+    if (!data.content) {
+      console.error(`ERROR: About file has no content: ${aboutPath}`);
+      return res.status(400).json({ error: 'About file has no content', path: aboutPath });
+    }
+
+    // Decode base64 content
+    let decodedContent;
+    try {
+      const contentBuffer = Buffer.from(data.content, 'base64');
+      decodedContent = contentBuffer.toString('utf8');
+      console.log(`Decoded about content length: ${decodedContent.length}`);
+    } catch (err) {
+      console.error(`ERROR: Failed to decode base64 content:`, err.message);
+      return res.status(400).json({ error: 'Failed to decode about file content', path: aboutPath });
+    }
+
+    // Parse JSON
+    let parsedContent;
+    try {
+      parsedContent = JSON.parse(decodedContent);
+      console.log(`Successfully parsed about JSON`);
+    } catch (err) {
+      console.error(`ERROR: Failed to parse JSON:`, err.message);
+      return res.status(400).json({ 
+        error: 'Failed to parse about JSON content', 
+        path: aboutPath,
+        message: err.message 
+      });
+    }
+
+    res.json(parsedContent);
+
+  } catch (err) {
+    console.error('=== ERROR in /api/about ===');
+    console.error('Error message:', err.message);
+    console.error('Error stack:', err.stack);
+    res.status(500).json({ 
+      error: 'Unexpected server error',
+      message: err.message
+    });
+  }
 });
 
 // Main commit route - verify path matches exactly: /api/commit
@@ -179,7 +448,13 @@ app.use((req, res) => {
     error: 'Route not found', 
     method: req.method, 
     path: req.path,
-    availableRoutes: ['POST /api/commit']
+    availableRoutes: [
+      'GET /api/test',
+      'GET /api/list?folder=Words|Lines|Motion|Sound|All',
+      'GET /api/file?path=<url-encoded-path>',
+      'GET /api/about',
+      'POST /api/commit'
+    ]
   });
 });
 
