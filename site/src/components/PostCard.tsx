@@ -1,6 +1,5 @@
 import React from 'react';
 import type { AnyPost } from '../types/content.ts';
-import { formatDate } from '../utils/date.ts';
 import styles from './PostCard.module.css';
 
 type PostCardProps = {
@@ -33,9 +32,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, onOpen }) => {
     <div className={styles.card} onClick={() => onOpen(post)}>
       <div className={styles.header}>
         <h3 className={styles.title}>{post.title}</h3>
-        <span className={styles.date}>
-          {formatDate(post.date instanceof Date ? post.date : new Date(post.date))}
-        </span>
       </div>
       {post.description && (
         <p className={styles.description}>{post.description}</p>

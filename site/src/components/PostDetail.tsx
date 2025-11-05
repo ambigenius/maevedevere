@@ -2,7 +2,8 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import type { AnyPost } from '../types/content.ts';
-import { formatDate } from '../utils/date.ts';
+import Image from '../Image.js';
+import '../App.css';
 import styles from './PostDetail.module.css';
 
 type PostDetailProps = {
@@ -10,10 +11,10 @@ type PostDetailProps = {
   onClose: () => void;
 };
 
-// Helper to get image URLs array
-function getImageUrls(image: string | string[] | null | undefined): string[] {
-  if (!image) return [];
-  if (typeof image === 'string') return [image];
+// Helper to normalize image data for Image component
+function getImageData(image: string | string[] | null | undefined): string | string[] | null {
+  if (!image) return null;
+  if (typeof image === 'string') return image;
   return image;
 }
 
@@ -95,7 +96,7 @@ function getSoundCloudEmbedUrl(url: string): string | null {
 }
 
 const PostDetail: React.FC<PostDetailProps> = ({ post, onClose }) => {
-  const imageUrls = getImageUrls(
+  const imageData = getImageData(
     post.type === 'Lines' || post.type === 'Sound' ? post.image : undefined
   );
   const imageWidth = 
@@ -111,9 +112,6 @@ const PostDetail: React.FC<PostDetailProps> = ({ post, onClose }) => {
         <header className={styles.header}>
           <h1 className={styles.title}>{post.title}</h1>
           <div className={styles.meta}>
-            <span className={styles.date}>
-              {formatDate(post.date instanceof Date ? post.date : new Date(post.date))}
-            </span>
             <span className={styles.type}>{post.type}</span>
           </div>
           {post.description && (
@@ -147,22 +145,12 @@ const PostDetail: React.FC<PostDetailProps> = ({ post, onClose }) => {
           )}
 
           {/* Lines/Sound: Images + Text */}
-          {(post.type === 'Lines' || post.type === 'Sound') && imageUrls.length > 0 && (
+          {(post.type === 'Lines' || post.type === 'Sound') && imageData && (
             <div className={styles.imageContainer}>
-              {imageUrls.map((url, index) => (
-                <img
-                  key={index}
-                  src={url}
-                  alt={`${post.title} - Image ${index + 1}`}
-                  className={styles.image}
-                  style={{ width: imageWidth || '100%' }}
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    console.error(`Failed to load image: ${url}`);
-                  }}
-                />
-              ))}
+              <Image 
+                imageLinks={imageData}
+                imageWidth={imageWidth || '600px'}
+              />
             </div>
           )}
 
