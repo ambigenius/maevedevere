@@ -5,9 +5,12 @@ import { useAbout } from './hooks/usePosts.ts';
 import ExpandableSection from './components/ExpandableSection.tsx';
 import PostGrid from './components/PostGrid.tsx';
 import PostDetail from './components/PostDetail.tsx';
+import TopBar from './components/TopBar.tsx';
+import Hero from './components/Hero.tsx';
 import ReactMarkdown from 'react-markdown';
 import './App.css';
 import styles from './HomePage.module.css';
+import Skeleton from './components/Skeleton.tsx';
 
 function HomePage() {
   const [expandedSection, setExpandedSection] = useState<Section | null>(null);
@@ -93,28 +96,57 @@ function HomePage() {
     return <span className={styles.count}>({sectionData.posts.length})</span>;
   };
 
+  const renderSectionContent = (section: Section) => {
+    const sectionData = getSectionData(section);
+    if (!sectionData) return null;
+
+    if (sectionData.loading) {
+      return (
+        <div className={styles.skeletonGrid}>
+          <Skeleton count={6} />
+        </div>
+      );
+    }
+
+    if (sectionData.error) {
+      return (
+        <div className={styles.errorContainer}>
+          Error loading posts: {sectionData.error}
+        </div>
+      );
+    }
+
+    return (
+      <>
+        <PostGrid posts={sectionData.posts} onOpen={handlePostOpen} />
+        {openedPost && (
+          <PostDetail post={openedPost} onClose={handlePostClose} />
+        )}
+      </>
+    );
+  };
+
   const sections: Section[] = ['About', 'All', 'Words', 'Lines', 'Motion', 'Sound'];
 
   return (
-    <div className="App">
-      {/* Navbar */}
-      <nav className={styles.navbar}>
-        {sections.map((section) => (
-          <button
-            key={section}
-            className={`${styles.navButton} ${
-              expandedSection === section ? styles.navButtonActive : ''
-            }`}
-            onClick={() => handleSectionToggle(section)}
-          >
-            {section}
-          </button>
-        ))}
-      </nav>
+    <div className={styles.layout}>
+      <TopBar
+        sections={sections}
+        active={expandedSection}
+        onSelect={(section) => handleSectionToggle(section)}
+      />
 
       <main className={styles.main}>
-        {/* About Section */}
-        {expandedSection === 'About' && (
+        <div className="container">
+          {!expandedSection && (
+            <Hero
+              onAbout={() => handleSectionToggle('About')}
+              onExplore={() => handleSectionToggle('All')}
+            />
+          )}
+
+          {/* About Section */}
+          {expandedSection === 'About' && (
           <ExpandableSection
             title="About"
             isOpen={true}
@@ -139,52 +171,18 @@ function HomePage() {
           </ExpandableSection>
         )}
 
-        {/* Posts Sections */}
-        {expandedSection && expandedSection !== 'About' && (
+          {/* Posts Sections */}
+          {expandedSection && expandedSection !== 'About' && (
           <ExpandableSection
             title={expandedSection}
             isOpen={true}
             onToggle={() => handleSectionToggle(expandedSection)}
             rightAdornment={getRightAdornment(expandedSection)}
           >
-            {(() => {
-              const sectionData = getSectionData(expandedSection);
-              if (!sectionData) return null;
-
-              if (sectionData.loading) {
-                return (
-                  <div className={styles.loadingContainer}>
-                    Loading posts...
-                  </div>
-                );
-              }
-
-              if (sectionData.error) {
-                return (
-                  <div className={styles.errorContainer}>
-                    Error loading posts: {sectionData.error}
-                  </div>
-                );
-              }
-
-              return (
-                <>
-                  <PostGrid posts={sectionData.posts} onOpen={handlePostOpen} />
-                  {openedPost && (
-                    <PostDetail post={openedPost} onClose={handlePostClose} />
-                  )}
-                </>
-              );
-            })()}
+            {renderSectionContent(expandedSection)}
           </ExpandableSection>
         )}
-
-        {/* Empty state when no section is expanded */}
-        {!expandedSection && (
-          <div className={styles.emptyState}>
-            <p>Select a section from the navigation to view content.</p>
-          </div>
-        )}
+        </div>
       </main>
     </div>
   );

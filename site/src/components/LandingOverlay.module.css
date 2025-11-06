@@ -1,0 +1,52 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none; /* allow clicks to pass unless on words */
+  z-index: 40;
+  display: grid;
+  align-items: start;
+  padding-top: var(--space-6);
+  padding-left: calc(72px + var(--space-4)); /* align next to left sidebar */
+}
+
+.words {
+  display: grid;
+  gap: 0;
+  width: 100%;
+}
+
+.word {
+  pointer-events: auto;
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 0 var(--space-6);
+  line-height: 0.9;
+  cursor: pointer;
+}
+
+.initial {
+  display: inline-block;
+  color: var(--bar-ink);
+  background: var(--bar);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 900;
+  font-size: var(--fs-xl);
+  letter-spacing: 0.06em;
+}
+
+.rest {
+  margin-left: 8px;
+  -webkit-text-stroke: 2px var(--ink);
+  color: #ffffff; /* fill so content beneath isn't visible */
+  font-weight: 900;
+  font-size: var(--fs-xxl);
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 700px) {
+  .rest { font-size: clamp(36px, 12vw, 72px); }
+}
+
+

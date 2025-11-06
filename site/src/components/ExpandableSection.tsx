@@ -16,6 +16,18 @@ const ExpandableSection: React.FC<ExpandableSectionProps> = ({
   rightAdornment,
   children,
 }) => {
+  const renderRightAdornment = () => {
+    if (rightAdornment === undefined || rightAdornment === null) {
+      return null;
+    }
+
+    if (typeof rightAdornment === 'number' || typeof rightAdornment === 'string') {
+      return <span className={`badge ${styles.count}`}>{rightAdornment}</span>;
+    }
+
+    return <span className={styles.rightAdornment}>{rightAdornment}</span>;
+  };
+
   return (
     <div className={styles.container}>
       <button
@@ -24,13 +36,14 @@ const ExpandableSection: React.FC<ExpandableSectionProps> = ({
         type="button"
         aria-expanded={isOpen}
       >
-        <span className={`${styles.caret} ${isOpen ? styles.caretOpen : ''}`}>
-          ▶
+        <span
+          className={`${styles.chevron} ${isOpen ? styles.open : ''}`}
+          aria-hidden="true"
+        >
+          ▸
         </span>
         <span className={styles.title}>{title}</span>
-        {rightAdornment && (
-          <span className={styles.rightAdornment}>{rightAdornment}</span>
-        )}
+        {renderRightAdornment()}
       </button>
       <div className={`${styles.content} ${isOpen ? styles.contentOpen : ''}`}>
         {isOpen && children && (

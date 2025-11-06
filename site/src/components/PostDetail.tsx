@@ -18,6 +18,14 @@ function getImageData(image: string | string[] | null | undefined): string | str
   return image;
 }
 
+// Helper to determine modal width class
+function getModalClass(type: AnyPost['type']): string {
+  if (type === 'Lines' || type === 'Motion' || type === 'Sound') {
+    return styles.modalWide;
+  }
+  return styles.modalNarrow;
+}
+
 // Helper to convert YouTube URL to embed URL
 function getYouTubeEmbedUrl(url: string): string | null {
   if (!url) return null;
@@ -101,12 +109,16 @@ const PostDetail: React.FC<PostDetailProps> = ({ post, onClose }) => {
   );
   const imageWidth = 
     post.type === 'Lines' || post.type === 'Sound' ? post.imageWidth : undefined;
+  const modalClass = getModalClass(post.type);
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.container} onClick={(e) => e.stopPropagation()}>
+      <div
+        className={`${styles.container} ${modalClass}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         <button className={styles.closeButton} onClick={onClose} aria-label="Close">
-          ×
+          ✕
         </button>
         
         <header className={styles.header}>
@@ -118,6 +130,8 @@ const PostDetail: React.FC<PostDetailProps> = ({ post, onClose }) => {
             <p className={styles.description}>{post.description}</p>
           )}
         </header>
+
+        <div className={styles.divider} aria-hidden="true" />
 
         <div className={styles.content}>
           {/* Motion: Video + Text */}

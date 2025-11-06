@@ -1,0 +1,30 @@
+:root {
+  --bg: #ffffff;
+  --ink: #0b0b0b;
+  --ink-muted: #6b7280;
+  --bar: #0b0b0b;
+  --bar-ink: #ffffff;
+  --card: #f7f7f7;
+  --stroke: #0b0b0b10; /* light stroke for cards */
+  --accent: #3b82f6;   /* optional */
+
+  --radius: 16px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --fs-xxl: clamp(48px, 8vw, 140px);
+  --fs-xl: clamp(28px, 4vw, 48px);
+  --fs-lg: clamp(18px, 2.2vw, 24px);
+  --fs-md: 16px;
+  --fs-sm: 14px;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+}
+

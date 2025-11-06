@@ -39,16 +39,22 @@
   background-color: #357abd;
 }
 
+.layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
 .main {
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
+  flex: 1;
+  padding: 32px 24px;
+  padding-top: 24px;
 }
 
 .emptyState {
   text-align: center;
   padding: 48px 24px;
-  color: #666;
+  color: var(--muted);
   font-size: 18px;
 }
 
@@ -59,13 +65,13 @@
 }
 
 .loadingContainer {
-  color: #666;
+  color: var(--muted);
 }
 
 .errorContainer {
   color: #d32f2f;
-  background-color: #ffebee;
-  border-radius: 4px;
+  background-color: rgba(211, 47, 47, 0.08);
+  border-radius: 8px;
 }
 
 .postsContainer {
@@ -73,7 +79,7 @@
 }
 
 .loading {
-  color: #666;
+  color: var(--muted);
   font-size: 14px;
   font-weight: normal;
 }
@@ -85,7 +91,7 @@
 }
 
 .count {
-  color: #666;
+  color: var(--muted);
   font-size: 14px;
   font-weight: normal;
 }
@@ -97,7 +103,7 @@
 .markdown {
   font-size: 16px;
   line-height: 1.7;
-  color: #333;
+  color: var(--text);
 }
 
 .markdown h1,
@@ -135,14 +141,14 @@
 }
 
 .markdown code {
-  background-color: #f5f5f5;
+  background-color: rgba(15, 23, 42, 0.08);
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 14px;
 }
 
 .markdown pre {
-  background-color: #f5f5f5;
+  background-color: rgba(15, 23, 42, 0.08);
   padding: 16px;
   border-radius: 4px;
   overflow-x: auto;
@@ -150,12 +156,30 @@
 }
 
 .markdown blockquote {
-  border-left: 4px solid #4a90e2;
+  border-left: 4px solid var(--accent);
   padding-left: 16px;
   margin-left: 0;
   margin-bottom: 16px;
-  color: #666;
+  color: var(--muted);
   font-style: italic;
+}
+
+.skeletonGrid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: var(--gap);
+}
+
+@media (min-width: 700px) {
+  .skeletonGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .skeletonGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 /* Responsive styles */
@@ -171,7 +195,8 @@
   }
 
   .main {
-    padding: 16px;
+    padding: 24px 16px;
+    padding-top: 80px;
   }
 
   .markdown {
@@ -193,7 +218,7 @@
   }
 
   .main {
-    padding: 12px;
+    padding: 20px 14px;
   }
 
   .markdown {
