@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import './NewPost.css';
 
 type PostType = 'Words' | 'Lines' | 'Motion' | 'Sound' | 'About';
@@ -40,6 +40,7 @@ interface SoundPost extends BasePost {
   image: string | string[] | null;
   imageWidth: string;
   audioUrl: string | null;
+  metadata: Record<string, any> & { audioEmbed?: string };
 }
 
 interface AboutPost extends BasePost {
@@ -108,6 +109,13 @@ const NewPost = () => {
   const [imageWidth, setImageWidth] = useState('600px');
   const [videoUrl, setVideoUrl] = useState('');
   const [audioUrl, setAudioUrl] = useState('');
+  const [audioEmbed, setAudioEmbed] = useState('');
+
+  useEffect(() => {
+    if (type !== 'Sound') {
+      setAudioEmbed('');
+    }
+  }, [type]);
 
   // UI state
   const [testMode, setTestMode] = useState(false);
@@ -136,6 +144,15 @@ const NewPost = () => {
   // Build the post object
   const postData = useMemo((): PostData | null => {
     const now = new Date().toISOString();
+    const mergedMetadata: Record<string, any> = { ...metadata };
+    if (type === 'Sound') {
+      if (audioEmbed.trim()) {
+        mergedMetadata.audioEmbed = audioEmbed.trim();
+      } else {
+        delete mergedMetadata.audioEmbed;
+      }
+    }
+
     const base: Partial<BasePost> = {
       type: type as PostType,
       id: postId,
@@ -146,7 +163,7 @@ const NewPost = () => {
       createdAt: now,
       updatedAt: now,
       isActive,
-      metadata,
+      metadata: mergedMetadata,
     };
 
     switch (type) {
@@ -186,7 +203,7 @@ const NewPost = () => {
       default:
         return null;
     }
-  }, [type, postId, slug, title, date, description, isActive, metadata, text, imageInput, imageWidth, videoUrl, audioUrl]);
+  }, [type, postId, slug, title, date, description, isActive, metadata, text, imageInput, imageWidth, videoUrl, audioUrl, audioEmbed]);
 
   // Compute file path
   const filePath = useMemo(() => {
@@ -278,6 +295,7 @@ const NewPost = () => {
     setImageWidth('600px');
     setVideoUrl('');
     setAudioUrl('');
+    setAudioEmbed('');
   }, [type]);
 
   return (
@@ -418,19 +436,28 @@ const NewPost = () => {
         )}
 
         {type === 'Sound' && (
-          <div className="form-group">
-            <label htmlFor="audio-url">Audio URL</label>
-            <input
-              type="url"
-              id="audio-url"
-              value={audioUrl}
-              onChange={(e) => setAudioUrl(e.target.value)}
-              placeholder="https://example.com/track.mp3 or https://artist.bandcamp.com/track/title"
-            />
-            <small className="helper-text">
-              Link to Bandcamp, SoundCloud, or other audio hosting platform
-            </small>
-          </div>
+          <>
+            <div className="form-row">
+              <label htmlFor="audio-url">Audio URL</label>
+              <input
+                id="audio-url"
+                type="text"
+                value={audioUrl}
+                onChange={(e) => setAudioUrl(e.target.value)}
+                placeholder="https://..."
+              />
+            </div>
+            <div className="form-row">
+              <label htmlFor="audio-embed">Audio Embed HTML (optional)</label>
+              <textarea
+                id="audio-embed"
+                value={audioEmbed}
+                onChange={(e) => setAudioEmbed(e.target.value)}
+                placeholder="Paste Bandcamp or SoundCloud iframe code"
+                rows={5}
+              />
+            </div>
+          </>
         )}
 
         {type === 'Motion' && (

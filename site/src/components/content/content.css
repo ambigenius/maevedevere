@@ -1,4 +1,8 @@
 .cb {
+  cursor: default;
+}
+
+.cb-clickable {
   cursor: pointer;
 }
 
@@ -38,6 +42,20 @@
 .cb-mediaWrap {
   position: relative;
   margin: 0;
+  width: 100%;
+  max-width: 720px;
+}
+
+.cb-mediaWrap.cb-motion {
+  max-width: 900px;
+}
+
+.cb-mediaWrap.cb-sound {
+  max-width: 420px;
+}
+
+.cb-mediaWrap.cb-lines {
+  max-width: 720px;
 }
 
 .cb-media {
@@ -46,6 +64,25 @@
   display: block;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  max-height: 80vh;
+}
+
+.cb-video {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding-top: 56.25%;
+}
+
+.cb-video iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 12px;
 }
 
 .cb-media:hover {
@@ -101,4 +138,25 @@
 
 .cb-body p {
   margin: 0 0 12px;
+}
+
+.cb-audio {
+  margin-top: 16px;
+}
+
+.cb-audio audio {
+  width: 100%;
+  display: block;
+  border-radius: 12px;
+}
+
+.cb-audioEmbed {
+  margin-top: 16px;
+}
+
+.cb-audioEmbed iframe {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  min-height: 140px;
 }

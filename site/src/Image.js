@@ -1,118 +1,117 @@
 import React from 'react';
 import './App.css';
 
-/**
- * Image component that handles both single and multiple images
- * - Single image: displays as standardized fixed-width image
- * - Multiple images: creates carousel/slideshow with navigation arrows
- */
 class Image extends React.Component {
   constructor(props) {
     super(props);
-    
-    // Normalize image links: convert single string to array, or use array as-is
-    this.imageLinks = Array.isArray(props.imageLinks) 
-      ? props.imageLinks 
-      : (props.imageLinks ? [props.imageLinks] : []);
-    
-    // Fixed width for all images
-    this.imageWidth = props.imageWidth || '600px';
-    
-    // State for carousel current index
     this.state = {
       currentIndex: 0,
-      isHovered: false
+      isHovered: false,
     };
   }
 
-  // Navigate to previous image
-  goToPrevious = () => {
-    this.setState(prevState => ({
-      currentIndex: prevState.currentIndex === 0 
-        ? this.imageLinks.length - 1 
-        : prevState.currentIndex - 1
+  componentDidUpdate(prevProps) {
+    if (JSON.stringify(prevProps.imageLinks) !== JSON.stringify(this.props.imageLinks)) {
+      this.setState({ currentIndex: 0 });
+    }
+  }
+
+  goToPrevious = (length) => {
+    this.setState((prevState) => ({
+      currentIndex: prevState.currentIndex === 0 ? length - 1 : prevState.currentIndex - 1,
     }));
   };
 
-  // Navigate to next image
-  goToNext = () => {
-    this.setState(prevState => ({
-      currentIndex: (prevState.currentIndex + 1) % this.imageLinks.length
+  goToNext = (length) => {
+    this.setState((prevState) => ({
+      currentIndex: (prevState.currentIndex + 1) % length,
     }));
   };
 
-  // Handle mouse enter
   handleMouseEnter = () => {
     this.setState({ isHovered: true });
   };
 
-  // Handle mouse leave
   handleMouseLeave = () => {
     this.setState({ isHovered: false });
   };
 
-  render() {
-    const { currentIndex, isHovered } = this.state;
-    const { imageLinks, imageWidth } = this;
+  getWrapperStyle(maxWidth) {
+    const style = {
+      width: '100%',
+      margin: '0 auto',
+    };
 
-    // If no images, return null
+    const base = maxWidth && typeof maxWidth === 'string' && maxWidth.trim().length
+      ? maxWidth.trim()
+      : '720px';
+
+    style.maxWidth = `min(${base}, 100vw)`;
+
+    return style;
+  }
+
+  render() {
+    const imageLinks = Array.isArray(this.props.imageLinks)
+      ? this.props.imageLinks
+      : this.props.imageLinks
+      ? [this.props.imageLinks]
+      : [];
+
+    const { currentIndex, isHovered } = this.state;
+    const maxWidth = this.props.imageWidth;
+    const wrapperStyle = this.getWrapperStyle(maxWidth);
+
     if (imageLinks.length === 0) {
       return null;
     }
 
-    // Single image display
     if (imageLinks.length === 1) {
       return (
-        <div className="image-container">
-          <img 
-            src={imageLinks[0]} 
+        <div className="image-container" style={wrapperStyle}>
+          <img
+            src={imageLinks[0]}
             alt="Image"
             className="single-image"
-            style={{ width: imageWidth }}
           />
         </div>
       );
     }
 
-    // Carousel display for multiple images
     return (
-      <div 
+      <div
         className="image-carousel-container"
+        style={wrapperStyle}
         onMouseEnter={this.handleMouseEnter}
         onMouseLeave={this.handleMouseLeave}
-        style={{ width: imageWidth }}
       >
         <div className="carousel-image-wrapper">
-          <img 
-            src={imageLinks[currentIndex]} 
+          <img
+            src={imageLinks[currentIndex]}
             alt={`Image ${currentIndex + 1} of ${imageLinks.length}`}
             className="carousel-image"
-            style={{ width: imageWidth }}
           />
-          
-          {/* Previous arrow - only visible on hover */}
+
           {isHovered && (
-            <button 
+            <button
               className="carousel-arrow carousel-arrow-left"
-              onClick={this.goToPrevious}
+              onClick={() => this.goToPrevious(imageLinks.length)}
               aria-label="Previous image"
             >
               ‹
             </button>
           )}
-          
-          {/* Next arrow - only visible on hover */}
+
           {isHovered && (
-            <button 
+            <button
               className="carousel-arrow carousel-arrow-right"
-              onClick={this.goToNext}
+              onClick={() => this.goToNext(imageLinks.length)}
               aria-label="Next image"
             >
               ›
             </button>
           )}
-          
-          {/* Image counter/indicators */}
+
           <div className="carousel-indicators">
             {currentIndex + 1} / {imageLinks.length}
           </div>

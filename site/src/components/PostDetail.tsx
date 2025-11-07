@@ -11,11 +11,55 @@ type PostDetailProps = {
   onClose: () => void;
 };
 
-// Helper to normalize image data for Image component
-function getImageData(image: string | string[] | null | undefined): string | string[] | null {
-  if (!image) return null;
-  if (typeof image === 'string') return image;
-  return image;
+// Helper to gather image links for carousel usage
+function getImageLinks(post: AnyPost): string[] {
+  const links: string[] = [];
+  const add = (value: unknown) => {
+    if (!value) return;
+    if (Array.isArray(value)) {
+      value.forEach((entry) => add(entry));
+      return;
+    }
+    if (typeof value === 'string') {
+      links.push(value);
+    }
+  };
+
+  add((post as any).image);
+  add(post.metadata?.image);
+  add(post.metadata?.images);
+  add(post.metadata?.imageLinks);
+  add(post.metadata?.poster);
+
+  return Array.from(new Set(links.filter(Boolean)));
+}
+
+function getMotionEmbed(post: AnyPost): string | null {
+  const url = post.metadata?.videoUrl || (post as any).videoUrl;
+  if (!url || typeof url !== 'string') return null;
+
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /youtube\.com\/v\/([^&\n?#]+)/,
+    ];
+
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) {
+        return `https://www.youtube.com/embed/${match[1]}`;
+      }
+    }
+  }
+
+  if (url.includes('vimeo.com')) {
+    const match = url.match(/vimeo\.com\/(\d+)/);
+    if (match && match[1]) {
+      return `https://player.vimeo.com/video/${match[1]}`;
+    }
+  }
+
+  return url;
 }
 
 // Helper to convert YouTube URL to embed URL
@@ -45,29 +89,18 @@ function isYouTubeUrl(url: string): boolean {
 
 // Helper to get Bandcamp embed URL
 function getBandcampEmbedUrl(url: string): string | null {
-  if (!url.includes('bandcamp.com')) return null;
-  
-  // Bandcamp embed format uses the track/album path
-  // Standard format: https://bandcamp.com/EmbeddedPlayer/[path]?size=large&bgcol=ffffff&linkcol=0687f5&transparent=true
+  if (url.includes('EmbeddedPlayer')) return url;
+
   try {
-    const urlObj = new URL(url);
-    const path = urlObj.pathname;
-    
-    // If it's already an embed URL, return as-is
-    if (path.includes('/EmbeddedPlayer/')) {
-      return url;
+    const parsed = new URL(url);
+    if (parsed.hostname.endsWith('bandcamp.com')) {
+      const path = parsed.pathname;
+      if (path.includes('/album/') || path.includes('/track/')) {
+        return `https://bandcamp.com/EmbeddedPlayer${path}?size=large&bgcol=ffffff&linkcol=0687f5&tracklist=false&transparent=true`;
+      }
     }
-    
-    // Remove leading slash and construct embed URL
-    const cleanPath = path.startsWith('/') ? path : `/${path}`;
-    // Bandcamp embed format: path with query params
-    const embedUrl = `https://bandcamp.com/EmbeddedPlayer${cleanPath}?size=large&bgcol=ffffff&linkcol=0687f5&transparent=true`;
-    return embedUrl;
+    return url;
   } catch {
-    // If URL parsing fails, try appending /embed to the original URL
-    if (url.includes('/track/') || url.includes('/album/')) {
-      return `${url}/embed`;
-    }
     return null;
   }
 }
@@ -95,18 +128,98 @@ function getSoundCloudEmbedUrl(url: string): string | null {
   }
 }
 
-const PostDetail: React.FC<PostDetailProps> = ({ post, onClose }) => {
-  const imageData = getImageData(
-    post.type === 'Lines' || post.type === 'Sound' ? post.image : undefined
+function renderSoundDetail(post: AnyPost) {
+  const embedHtml = (post.metadata as any)?.audioEmbed || (post.metadata as any)?.audioHtml;
+  if (embedHtml) {
+    return (
+      <div className={styles.audioContainer}>
+        <div className={styles.audioEmbed} dangerouslySetInnerHTML={{ __html: embedHtml }} />
+      </div>
+    );
+  }
+
+  const url = ((post as any).audioUrl as string | undefined) || (post.metadata as any)?.audioUrl;
+  if (!url) {
+    return null;
+  }
+
+  if (isBandcampUrl(url)) {
+    const embedUrl = getBandcampEmbedUrl(url) || url;
+    return (
+      <div className={styles.audioContainer}>
+        <iframe
+          className={styles.audioEmbed}
+          src={embedUrl}
+          title={post.title}
+          frameBorder="0"
+          allow="autoplay; encrypted-media"
+          style={{ border: 0, width: '100%', height: '160px' }}
+        ></iframe>
+      </div>
+    );
+  }
+
+  if (isSoundCloudUrl(url)) {
+    const scUrl = getSoundCloudEmbedUrl(url) || url;
+    return (
+      <div className={styles.audioContainer}>
+        <iframe
+          className={styles.audioEmbed}
+          src={scUrl}
+          title={post.title}
+          frameBorder="0"
+          allow="autoplay"
+          style={{ width: '100%', height: '166px' }}
+        ></iframe>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.audioContainer}>
+      <audio controls className={styles.audioPlayer} src={url}>
+        Your browser does not support the audio element.
+      </audio>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={styles.audioLink}
+      >
+        🎵 Open in new tab
+      </a>
+    </div>
   );
-  const imageWidth = 
-    post.type === 'Lines' || post.type === 'Sound' ? post.imageWidth : undefined;
+}
+
+function getModalClass(type: AnyPost['type']): string {
+  if (type === 'Motion') return styles.modalWide;
+  if (type === 'Lines' || type === 'Sound') return styles.modalWide;
+  return styles.modalNarrow;
+}
+
+const PostDetail: React.FC<PostDetailProps> = ({ post, onClose }) => {
+  const imageLinks = getImageLinks(post);
+  const defaultImageWidth = post.type === 'Motion'
+    ? '900px'
+    : post.type === 'Sound'
+    ? '420px'
+    : post.type === 'Lines'
+    ? ((post as any).imageWidth as string | undefined) || '720px'
+    : '720px';
+  const normalizedDescription = normalizeText(post.description);
+  const normalizedText = normalizeText(post.text);
+  const normalizedAbout = normalizeText(post.text);
+  const motionEmbed = post.type === 'Motion' ? getMotionEmbed(post) : null;
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.container} onClick={(e) => e.stopPropagation()}>
+      <div
+        className={`${styles.container} ${getModalClass(post.type)}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         <button className={styles.closeButton} onClick={onClose} aria-label="Close">
-          ×
+          ✕
         </button>
         
         <header className={styles.header}>
@@ -114,89 +227,46 @@ const PostDetail: React.FC<PostDetailProps> = ({ post, onClose }) => {
           <div className={styles.meta}>
             <span className={styles.type}>{post.type}</span>
           </div>
-          {post.description && (
-            <p className={styles.description}>{post.description}</p>
+          {normalizedDescription && (
+            <p className={styles.description}>{normalizedDescription}</p>
           )}
         </header>
 
+        <div className={styles.divider} aria-hidden="true" />
+
         <div className={styles.content}>
           {/* Motion: Video + Text */}
-          {post.type === 'Motion' && post.videoUrl && (
+          {post.type === 'Motion' && motionEmbed && (
             <div className={styles.videoContainer}>
-              {isYouTubeUrl(post.videoUrl) ? (
-                <iframe
-                  className={styles.videoEmbed}
-                  src={getYouTubeEmbedUrl(post.videoUrl) || post.videoUrl}
-                  title={post.title}
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                ></iframe>
-              ) : (
-                <video 
-                  className={styles.video}
-                  controls
-                  src={post.videoUrl}
-                >
-                  Your browser does not support the video tag.
-                </video>
-              )}
+              <iframe
+                className={styles.videoEmbed}
+                src={motionEmbed}
+                title={post.title}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
             </div>
           )}
 
           {/* Lines/Sound: Images + Text */}
-          {(post.type === 'Lines' || post.type === 'Sound') && imageData && (
+          {(post.type === 'Lines' || post.type === 'Sound') && imageLinks.length > 0 && (
             <div className={styles.imageContainer}>
               <Image 
-                imageLinks={imageData}
-                imageWidth={imageWidth || '600px'}
+                imageLinks={imageLinks}
+                imageWidth={defaultImageWidth}
               />
             </div>
           )}
 
           {/* Sound: Audio URL */}
-          {post.type === 'Sound' && post.audioUrl && (
-            <div className={styles.audioContainer}>
-              {isBandcampUrl(post.audioUrl) ? (
-                <iframe
-                  className={styles.audioEmbed}
-                  src={getBandcampEmbedUrl(post.audioUrl) || post.audioUrl}
-                  title={post.title}
-                  frameBorder="0"
-                  style={{ border: 0, width: '100%', height: '120px' }}
-                ></iframe>
-              ) : isSoundCloudUrl(post.audioUrl) ? (
-                <iframe
-                  className={styles.audioEmbed}
-                  src={getSoundCloudEmbedUrl(post.audioUrl) || post.audioUrl}
-                  title={post.title}
-                  frameBorder="0"
-                  allow="autoplay"
-                  style={{ width: '100%', height: '166px' }}
-                ></iframe>
-              ) : (
-                <>
-                  <audio controls className={styles.audioPlayer} src={post.audioUrl}>
-                    Your browser does not support the audio element.
-                  </audio>
-                  <a 
-                    href={post.audioUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className={styles.audioLink}
-                  >
-                    🎵 Open in new tab
-                  </a>
-                </>
-              )}
-            </div>
-          )}
+          {post.type === 'Sound' && renderSoundDetail(post)}
 
           {/* Text content (Markdown for Words/Lines/Sound, plain text for About) */}
           {post.text && (
             <div className={styles.textContainer}>
               {post.type === 'About' ? (
-                <div className={styles.plainText}>{post.text}</div>
+                <div className={styles.plainText}>{normalizedAbout}</div>
               ) : (
                 <ReactMarkdown 
                   className={styles.markdown}
@@ -205,7 +275,7 @@ const PostDetail: React.FC<PostDetailProps> = ({ post, onClose }) => {
                     p: ({ node, ...props }) => <p style={{ whiteSpace: 'normal' }} {...props} />,
                   }}
                 >
-                  {post.text}
+                  {normalizedText}
                 </ReactMarkdown>
               )}
             </div>
@@ -215,6 +285,11 @@ const PostDetail: React.FC<PostDetailProps> = ({ post, onClose }) => {
     </div>
   );
 };
+
+function normalizeText(value?: string | null): string {
+  if (!value) return '';
+  return value.replace(/\\n/g, '\n');
+}
 
 export default PostDetail;
 
