@@ -12,7 +12,7 @@
     <!-- Content Security Policy: Allow connections to API -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="connect-src 'self' https://mdvvercel.vercel.app http://localhost:3001 http://localhost:3000 https://*.github.com https://*.githubusercontent.com; default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: http:; frame-src 'self' https://www.youtube.com https://youtube.com https://*.youtube.com https://*.youtu.be https://bandcamp.com https://*.bandcamp.com https://w.soundcloud.com https://soundcloud.com; media-src 'self' https: http:;"
+      content="default-src 'self'; connect-src 'self' https://mdvvercel.vercel.app http://localhost:3001 http://localhost:3000 https://*.github.com https://*.githubusercontent.com; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: http:; frame-src 'self' https://www.youtube.com https://youtube.com https://*.youtube.com https://*.youtu.be https://bandcamp.com https://*.bandcamp.com https://w.soundcloud.com https://soundcloud.com; media-src 'self' https: http:;"
     />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <!--
