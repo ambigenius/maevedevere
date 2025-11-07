@@ -3,7 +3,7 @@ import type { Section, AnyPost } from './types/content.ts';
 import usePosts from './hooks/usePosts.ts';
 import { useAbout } from './hooks/usePosts.ts';
 import ExpandableSection from './components/ExpandableSection.tsx';
-import PostGrid from './components/PostGrid.tsx';
+import MasonryFeed from './components/MasonryFeed.tsx';
 import PostDetail from './components/PostDetail.tsx';
 import ReactMarkdown from 'react-markdown';
 import './App.css';
@@ -169,7 +169,7 @@ function HomePage() {
 
               return (
                 <>
-                  <PostGrid posts={sectionData.posts} onOpen={handlePostOpen} />
+                  <MasonryFeed posts={sectionData.posts} onOpen={handlePostOpen} />
                   {openedPost && (
                     <PostDetail post={openedPost} onClose={handlePostClose} />
                   )}
