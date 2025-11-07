@@ -158,6 +158,25 @@
   font-style: italic;
 }
 
+.aboutLinks {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.aboutLinks a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.aboutLinks a:hover {
+  text-decoration: underline;
+}
+
 /* Responsive styles */
 @media (max-width: 768px) {
   .navbar {

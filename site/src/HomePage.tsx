@@ -117,6 +117,24 @@ function HomePage() {
                 <ReactMarkdown className={styles.markdown}>
                   {aboutData.about.text}
                 </ReactMarkdown>
+                <div className={styles.aboutLinks}>
+                  <p>Find more:</p>
+                  <a
+                    href={(aboutData.about.metadata as any)?.instagram || 'https://instagram.com/maevedevere'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Instagram
+                  </a>
+                  <span>·</span>
+                  <a
+                    href={(aboutData.about.metadata as any)?.substack || 'https://substack.com/@maevedevere'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Substack
+                  </a>
+                </div>
               </div>
             )}
           </ExpandableSection>
@@ -160,7 +178,7 @@ function HomePage() {
         {/* Empty state when no section is expanded */}
         {!expandedSection && (
           <div className={styles.emptyState}>
-            <p>Select a section from the navigation to view content.</p>
+            <p>You have entered the archive of Maeve de Vere. Select a section to begin.</p>
           </div>
         )}
       </main>

@@ -177,7 +177,7 @@ app.get('/api/file', async (req, res) => {
   console.log('Query params:', req.query);
   
   try {
-    const { path: filePath } = req.query;
+    const { path: filePath, meta: includeMeta } = req.query;
     
     if (!filePath) {
       console.error('ERROR: Missing required query parameter: path');
@@ -237,6 +237,15 @@ app.get('/api/file', async (req, res) => {
         error: 'Failed to parse JSON content', 
         path: decodedPath,
         message: err.message 
+      });
+    }
+
+    if (includeMeta === 'true') {
+      return res.json({
+        content: parsedContent,
+        sha: data.sha || null,
+        path: decodedPath,
+        download_url: data.download_url || null,
       });
     }
 
@@ -351,7 +360,7 @@ app.post('/api/commit', async (req, res) => {
 
     console.log('--- Step 2: Parsing request body ---');
     console.log('Full request body:', JSON.stringify(req.body, null, 2));
-    const { path, contentJson, message, sha } = req.body;
+    const { path, contentJson, message, sha, originalPath, originalSha, deleteMessage } = req.body;
     console.log('Extracted values:');
     console.log('  - path:', path);
     console.log('  - message:', message);
@@ -371,6 +380,8 @@ app.post('/api/commit', async (req, res) => {
 
     console.log('--- Step 4: Building GitHub API URL ---');
     const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(path)}`;
+    const originalFullPath = originalPath || path;
+    const isRename = originalFullPath !== path;
     console.log('GitHub API URL:', apiUrl);
     console.log('Owner:', OWNER);
     console.log('Repo:', REPO);
@@ -387,13 +398,57 @@ app.post('/api/commit', async (req, res) => {
     const requestBody = {
       message,
       content: contentBase64,
-      sha: sha || undefined,
+      sha: isRename ? undefined : (sha || undefined),
       committer: { name: 'Site Bot', email: 'bot@example.com' }
     };
     console.log('Request body (without content):', {
       ...requestBody,
       content: `[base64 string, length: ${requestBody.content.length}]`
     });
+
+    if (isRename) {
+      if (!originalSha) {
+        console.error('ERROR: Rename requested but originalSha missing');
+        return res.status(400).json({ error: 'originalSha is required when renaming a file' });
+      }
+
+      console.log('Renaming file from', originalFullPath, 'to', path);
+
+      const renameUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(originalFullPath)}`;
+      const renameBody = {
+        message,
+        content: contentBase64,
+        sha: originalSha,
+        path,
+        committer: { name: 'Site Bot', email: 'bot@example.com' }
+      };
+
+      const renameResp = await fetch(renameUrl, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+          'X-GitHub-Api-Version': '2022-11-28'
+        },
+        body: JSON.stringify(renameBody)
+      });
+
+      const renameData = await renameResp.json().catch(() => ({}));
+
+      if (!renameResp.ok) {
+        console.error('ERROR: Failed to rename file', renameData);
+        return res.status(renameResp.status).json(renameData);
+      }
+
+      return res.json({
+        renamed: true,
+        content: renameData.content,
+        commit: renameData.commit,
+        path,
+      });
+    }
+
     console.log('Making GitHub API call...');
 
     console.log('--- Step 7: Calling GitHub API ---');
@@ -424,6 +479,67 @@ app.post('/api/commit', async (req, res) => {
 
     console.log('--- Step 9: Success! Returning response ---');
     console.log('✓ Commit successful');
+    if (isRename) {
+      if (!originalSha) {
+        console.error('ERROR: Rename requested but originalSha missing');
+        return res.status(400).json({ error: 'originalSha is required when renaming a file' });
+      }
+
+      console.log('Renaming file from', originalFullPath, 'to', path);
+
+      const createResp = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+          'X-GitHub-Api-Version': '2022-11-28'
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const createData = await createResp.json();
+      if (!createResp.ok) {
+        console.error('ERROR: Failed to create renamed file', createData);
+        return res.status(createResp.status).json(createData);
+      }
+
+      const deleteUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(originalFullPath)}`;
+      const deleteResp = await fetch(deleteUrl, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+          'X-GitHub-Api-Version': '2022-11-28'
+        },
+        body: JSON.stringify({
+          message: deleteMessage || `Remove old path ${originalFullPath}`,
+          sha: originalSha,
+          committer: { name: 'Site Bot', email: 'bot@example.com' }
+        })
+      });
+
+      const deleteData = await deleteResp.json().catch(() => ({}));
+      if (!deleteResp.ok) {
+        console.error('WARNING: Failed to delete original file after rename', deleteData);
+        return res.status(deleteResp.status).json({
+          error: 'File renamed but failed to delete original path',
+          delete: deleteData,
+          content: createData.content,
+          commit: createData.commit,
+        });
+      }
+
+      return res.json({
+        renamed: true,
+        content: createData.content,
+        commit: createData.commit,
+        delete: deleteData,
+        path,
+      });
+    }
+
     res.json(data); // includes commit info and content html_url when present
   } catch (err) {
     console.error('=== ERROR in /api/commit route handler ===');
@@ -438,6 +554,59 @@ app.post('/api/commit', async (req, res) => {
       message: err.message,
       stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
+  }
+});
+
+app.delete('/api/commit', async (req, res) => {
+  console.log('\n=== DELETE /api/commit route handler called ===');
+  console.log('Request received at:', new Date().toISOString());
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+
+  try {
+    const token = GITHUB_TOKEN;
+    if (!token) {
+      console.error('ERROR: GITHUB_TOKEN missing on server');
+      return res.status(500).json({ error: 'GITHUB_TOKEN missing on server' });
+    }
+
+    const { path, message, sha } = req.body || {};
+    if (!path || !message || !sha) {
+      console.error('ERROR: Missing required fields for delete', { path, message, sha });
+      return res.status(400).json({ error: 'path, message, and sha are required' });
+    }
+
+    const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(path)}`;
+    console.log('GitHub delete URL:', apiUrl);
+
+    const requestBody = {
+      message,
+      sha,
+      committer: { name: 'Site Bot', email: 'bot@example.com' }
+    };
+
+    const resp = await fetch(apiUrl, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+        'X-GitHub-Api-Version': '2022-11-28'
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!resp.ok) {
+      const errorData = await resp.json().catch(() => ({ error: resp.statusText }));
+      console.error('GitHub delete failed', errorData);
+      return res.status(resp.status).json(errorData);
+    }
+
+    const data = await resp.json().catch(() => ({}));
+    res.json(data);
+  } catch (err) {
+    console.error('=== ERROR in DELETE /api/commit ===');
+    console.error(err);
+    res.status(500).json({ error: 'Unexpected server error', message: err.message });
   }
 });
 

@@ -26,6 +26,11 @@ function AdminPage() {
       >
         ← Back to Home
       </Link>
+      <div style={{ marginTop: '80px', padding: '0 24px' }}>
+        <Link to="/admin/modify" className="btn pill" style={{ textDecoration: 'none', marginBottom: '24px', display: 'inline-flex' }}>
+          Modify Existing Post →
+        </Link>
+      </div>
       <NewPost />
     </div>
   );

@@ -209,6 +209,115 @@
   word-wrap: break-word;
 }
 
+.info-banner {
+  background: #f5f8ff;
+  border: 1px solid #d5e2ff;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  color: #1f3c88;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.info-banner p {
+  margin: 0;
+}
+
+.form-row {
+  margin-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-row label {
+  font-weight: 500;
+  color: #333;
+}
+
+.form-row input,
+.form-row select,
+.form-row textarea {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.form-row input:focus,
+.form-row select:focus,
+.form-row textarea:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.12);
+}
+
+.checkbox-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.form-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.form-actions button {
+  align-self: flex-start;
+  background-color: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 24px;
+  padding: 0.65rem 1.8rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.form-actions button:hover:not(:disabled) {
+  background-color: #3576c9;
+}
+
+.form-actions button:disabled {
+  background-color: #cbd5f5;
+  cursor: not-allowed;
+}
+
+.button-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.delete-button {
+  background-color: #e85151;
+  color: #fff;
+  border: none;
+  border-radius: 24px;
+  padding: 0.65rem 1.8rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.delete-button:hover:not(:disabled) {
+  background-color: #d13c3c;
+}
+
+.delete-button:disabled {
+  background-color: #f2bcbc;
+  cursor: not-allowed;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .new-post-container {
@@ -219,5 +328,56 @@
   .preview-section {
     padding: 1rem;
   }
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 18, 26, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 20px;
+}
+
+.modal-dialog {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px 28px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.25);
+  display: grid;
+  gap: 16px;
+}
+
+.modal-dialog h3 {
+  margin: 0;
+  font-size: 1.35rem;
+  color: #1e293b;
+}
+
+.modal-dialog p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.modal-dialog .btn {
+  border: 1px solid #cbd5f5;
+  background: #f8faff;
+  color: #1e293b;
+}
+
+.modal-dialog .btn:hover {
+  background: #e9efff;
 }
 
