@@ -1,17 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import type { Section, AnyPost } from './types/content.ts';
+import React, { useState } from 'react';
+import type { Section } from './types/content.ts';
 import usePosts from './hooks/usePosts.ts';
 import { useAbout } from './hooks/usePosts.ts';
 import ExpandableSection from './components/ExpandableSection.tsx';
-import MasonryFeed from './components/MasonryFeed.tsx';
-import PostDetail from './components/PostDetail.tsx';
+import PostStack from './components/PostStack.tsx';
 import ReactMarkdown from 'react-markdown';
 import './App.css';
 import styles from './HomePage.module.css';
 
 function HomePage() {
   const [expandedSection, setExpandedSection] = useState<Section | null>(null);
-  const [openedPost, setOpenedPost] = useState<AnyPost | null>(null);
 
   // Fetch posts for each section when expanded
   const allPosts = usePosts('All');
@@ -23,37 +21,22 @@ function HomePage() {
 
   // Handle section toggle
   const handleSectionToggle = (section: Section) => {
-    if (expandedSection === section) {
-      setExpandedSection(null);
-    } else {
-      setExpandedSection(section);
-      setOpenedPost(null); // Clear opened post when switching sections
-    }
-  };
-
-  // Handle post open
-  const handlePostOpen = (post: AnyPost) => {
-    setOpenedPost(post);
-  };
-
-  // Handle post close
-  const handlePostClose = () => {
-    setOpenedPost(null);
+    setExpandedSection((prev) => (prev === section ? null : section));
   };
 
   // ESC key handler to close PostDetail
-  useEffect(() => {
-    const handleEscKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && openedPost) {
-        handlePostClose();
-      }
-    };
+  // useEffect(() => { // This effect is no longer needed
+  //   const handleEscKey = (event: KeyboardEvent) => {
+  //     if (event.key === 'Escape' && openedPost) {
+  //       handlePostClose();
+  //     }
+  //   };
 
-    window.addEventListener('keydown', handleEscKey);
-    return () => {
-      window.removeEventListener('keydown', handleEscKey);
-    };
-  }, [openedPost]);
+  //   window.addEventListener('keydown', handleEscKey);
+  //   return () => {
+  //     window.removeEventListener('keydown', handleEscKey);
+  //   };
+  // }, [openedPost]);
 
   // Get data for the current section
   const getSectionData = (section: Section) => {
@@ -168,12 +151,7 @@ function HomePage() {
               }
 
               return (
-                <>
-                  <MasonryFeed posts={sectionData.posts} onOpen={handlePostOpen} />
-                  {openedPost && (
-                    <PostDetail post={openedPost} onClose={handlePostClose} />
-                  )}
-                </>
+                <PostStack posts={sectionData.posts} />
               );
             })()}
           </ExpandableSection>

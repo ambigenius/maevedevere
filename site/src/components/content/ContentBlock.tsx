@@ -1,28 +1,37 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
-import type { AnyPost } from '../../types/content';
+import type { AnyPost } from '../../types/content.ts';
 import './content.css';
 
 type ContentBlockProps = {
   post: AnyPost;
-  onOpen: () => void;
+  expanded?: boolean;
+  onOpen?: () => void;
 };
 
-const ContentBlock: React.FC<ContentBlockProps> = ({ post, onOpen }) => {
+const ContentBlock: React.FC<ContentBlockProps> = ({ post, expanded = false, onOpen }) => {
   const kind = post.type?.toLowerCase();
 
   if (kind === 'words' || kind === 'about') {
+    const bodyContent = post.text
+      ? expanded
+        ? post.text
+        : truncateMarkdown(post.text, 110)
+      : '';
+
+    const bodyClass = expanded ? 'cb-body' : 'cb-excerpt';
+
     return (
-      <article className="cb" onClick={onOpen} role="button" tabIndex={0}>
+      <article className="cb" role="article">
         <h3 className="cb-title">{post.title}</h3>
         {post.description && (
           <p className="cb-dek">
             <em>{post.description}</em>
           </p>
         )}
-        {post.text && (
-          <div className="cb-excerpt">
-            <ReactMarkdown>{truncateMarkdown(post.text, 110)}</ReactMarkdown>
+        {bodyContent && (
+          <div className={bodyClass}>
+            <ReactMarkdown>{bodyContent}</ReactMarkdown>
           </div>
         )}
       </article>
@@ -43,17 +52,28 @@ const ContentBlock: React.FC<ContentBlockProps> = ({ post, onOpen }) => {
             src={img}
             alt={post.title}
             loading="lazy"
-            onClick={onOpen}
+            onClick={onOpen ? () => onOpen() : undefined}
+            style={{ cursor: onOpen ? 'pointer' : 'default' }}
           />
         )}
         {kind === 'motion' && <span className="cb-play">▶</span>}
         <figcaption className="cb-cap">
-          <span className="cb-title-link" onClick={onOpen} role="button" tabIndex={0}>
+          <span
+            className="cb-title-link"
+            onClick={onOpen ? () => onOpen() : undefined}
+            role={onOpen ? 'button' : undefined}
+            tabIndex={onOpen ? 0 : -1}
+          >
             {post.title}
           </span>
           {post.description && <span className="cb-cap-sep"> — </span>}
           {post.description && <em>{post.description}</em>}
         </figcaption>
+        {expanded && post.text && (
+          <div className="cb-body">
+            <ReactMarkdown>{post.text}</ReactMarkdown>
+          </div>
+        )}
       </figure>
     );
   }
@@ -64,9 +84,8 @@ const ContentBlock: React.FC<ContentBlockProps> = ({ post, onOpen }) => {
 export default ContentBlock;
 
 function pickImage(post: AnyPost): string | null {
-  // Lines/Sound often carry image or metadata.imageLinks
   const imageSource =
-    // @ts-ignore - we attempt a best-effort lookup across variants
+    // @ts-ignore - best-effort lookup
     post.image || post.metadata?.image || post.metadata?.imageLinks?.[0];
 
   if (typeof imageSource === 'string') return imageSource;

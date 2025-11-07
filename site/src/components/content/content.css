@@ -26,6 +26,7 @@
   line-height: 1.65;
   display: -webkit-box;
   -webkit-line-clamp: 7;
+  line-clamp: 7;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -90,4 +91,14 @@
   padding: 6px 10px;
   font-size: 12px;
   letter-spacing: 0.06em;
+}
+
+.cb-body {
+  margin-top: 18px;
+  color: var(--text);
+  line-height: 1.7;
+}
+
+.cb-body p {
+  margin: 0 0 12px;
 }
