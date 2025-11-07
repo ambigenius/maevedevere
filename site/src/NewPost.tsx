@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import './NewPost.css';
-import { API_BASE } from './config.ts';
+import { getApiBase } from './config.ts';
 
 type PostType = 'Words' | 'Lines' | 'Motion' | 'Sound' | 'About';
 
@@ -263,7 +263,7 @@ const NewPost = () => {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/commit`, {
+      const response = await fetch(`${getApiBase()}/commit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

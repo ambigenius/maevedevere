@@ -9,7 +9,13 @@ const app = express();
 
 const PORT = process.env.PORT || 3001;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const ALLOW_ORIGIN = process.env.ALLOW_ORIGIN || 'http://localhost:3000';
+const DEFAULT_ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'https://maevedeveresite.vercel.app'
+];
+const ALLOWED_ORIGINS = (process.env.ALLOW_ORIGIN
+  ? process.env.ALLOW_ORIGIN.split(',')
+  : DEFAULT_ALLOWED_ORIGINS).map(origin => origin.trim()).filter(Boolean);
 const OWNER = process.env.GITHUB_OWNER || 'ambigenius';
 const REPO = process.env.GITHUB_REPO || 'mdvbackend';
 
@@ -31,24 +37,35 @@ app.use(express.json());
 
 // Configure CORS to allow connections from configured origin
 app.use(cors({
-  origin: ALLOW_ORIGIN,
+  origin(origin, callback) {
+    if (!origin) {
+      return callback(null, true);
+    }
+    if (ALLOWED_ORIGINS.includes(origin)) {
+      return callback(null, true);
+    }
+    console.warn(`CORS: origin ${origin} not in allow list`);
+    return callback(null, true);
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Add headers to help with CSP and cross-origin requests
 app.use((req, res, next) => {
-  // Set headers that help with Content Security Policy
-  res.setHeader('Access-Control-Allow-Origin', ALLOW_ORIGIN);
+  const requestOrigin = req.headers.origin;
+  const allowedOrigin = requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin)
+    ? requestOrigin
+    : ALLOWED_ORIGINS[0];
+
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  
-  // Handle preflight requests
+
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
+
   next();
 });
 
@@ -629,7 +646,7 @@ app.use((req, res) => {
 
 app.listen(PORT, () => {
   console.log(`API server listening on http://localhost:${PORT}`);
-  console.log(`CORS enabled for: ${ALLOW_ORIGIN}`);
+  console.log(`CORS enabled for: ${ALLOWED_ORIGINS.join(', ')}`);
   console.log(`Environment file: vars.env`);
   console.log(`GitHub Owner: ${OWNER}`);
   console.log(`GitHub Repo: ${REPO}`);

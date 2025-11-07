@@ -2,9 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import './NewPost.css';
 
 import type { AnyPost } from './types/content.ts';
-import { API_BASE } from './config.ts';
-
-const API_ROOT = API_BASE;
+import { getApiBase } from './config.ts';
 
 type PostType = 'Words' | 'Lines' | 'Motion' | 'Sound' | 'About';
 
@@ -116,7 +114,7 @@ const ModifyPost: React.FC = () => {
       setLoadingList(true);
       setListError(null);
       try {
-        const response = await fetch(`${API_BASE}/list?folder=All`);
+        const response = await fetch(`${getApiBase()}/list?folder=All`);
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
           throw new Error(errorData.error || `Failed to load posts list (${response.status})`);
@@ -203,7 +201,7 @@ const ModifyPost: React.FC = () => {
     setSubmitSuccess(null);
 
     try {
-      const resp = await fetch(`${API_BASE}/file?path=${encodeURIComponent(path)}&meta=true`);
+      const resp = await fetch(`${getApiBase()}/file?path=${encodeURIComponent(path)}&meta=true`);
       if (!resp.ok) {
         const errorData = await resp.json().catch(() => ({ error: 'Unknown error' }));
         throw new Error(errorData.error || `Failed to load post (${resp.status})`);
@@ -395,7 +393,7 @@ const ModifyPost: React.FC = () => {
         commitBody.sha = originalSha;
       }
 
-      const resp = await fetch(`${API_BASE}/commit`, {
+      const resp = await fetch(`${getApiBase()}/commit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -468,7 +466,7 @@ const ModifyPost: React.FC = () => {
         sha: loadedPost.sha,
       };
 
-      const resp = await fetch(`${API_BASE}/commit`, {
+      const resp = await fetch(`${getApiBase()}/commit`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

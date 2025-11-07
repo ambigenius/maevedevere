@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Section, AnyPost, About } from '../types/content.ts';
 import { parseIsoDateFields } from '../types/content.ts';
-import { API_BASE } from '../config.ts';
+import { getApiBase } from '../config.ts';
 
 interface FileListItem {
   path: string;
@@ -50,7 +50,8 @@ export default function usePosts(section: Section): UsePostsResult {
       try {
         // Step 1: List files for the section
         const folderParam = section === 'All' ? 'All' : section;
-        const listUrl = `${API_BASE}/list?folder=${encodeURIComponent(folderParam)}`;
+        const apiBase = getApiBase();
+        const listUrl = `${apiBase}/list?folder=${encodeURIComponent(folderParam)}`;
         
         console.log(`Fetching file list for section: ${section}`);
         const listResponse = await fetch(listUrl);
@@ -67,7 +68,7 @@ export default function usePosts(section: Section): UsePostsResult {
 
         // Step 2: Fetch each file in parallel
         const filePromises = fileList.map(async (file) => {
-          const fileUrl = `${API_BASE}/file?path=${encodeURIComponent(file.path)}`;
+          const fileUrl = `${apiBase}/file?path=${encodeURIComponent(file.path)}`;
           const fileResponse = await fetch(fileUrl);
           
           if (!fileResponse.ok) {
@@ -139,8 +140,9 @@ export function useAbout(): UseAboutResult {
       setLoading(true);
       setError(null);
 
+      const apiBase = getApiBase();
       try {
-        const aboutUrl = `${API_BASE}/about`;
+        const aboutUrl = `${apiBase}/about`;
         console.log('Fetching about page');
         
         const response = await fetch(aboutUrl);
