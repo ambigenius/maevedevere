@@ -2,8 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import './NewPost.css';
 
 import type { AnyPost } from './types/content.ts';
+import { API_BASE } from './config.ts';
 
-const API_BASE = 'http://localhost:3001/api';
+const API_ROOT = API_BASE;
 
 type PostType = 'Words' | 'Lines' | 'Motion' | 'Sound' | 'About';
 

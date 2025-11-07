@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Section, AnyPost, About } from '../types/content.ts';
 import { parseIsoDateFields } from '../types/content.ts';
-
-const API_BASE = 'http://localhost:3001/api';
+import { API_BASE } from '../config.ts';
 
 interface FileListItem {
   path: string;
