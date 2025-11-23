@@ -1,5 +1,9 @@
 /* Global styles */
 
+html {
+  background-color: #fff;
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -8,7 +12,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f5f5f5;
+  background-color: #fff;
   color: #333;
   line-height: 1.6;
 }
