@@ -71,7 +71,7 @@ class Image extends React.Component {
         <div className="image-container" style={wrapperStyle}>
           <img
             src={imageLinks[0]}
-            alt="Image"
+            alt=""
             className="single-image"
           />
         </div>
@@ -88,7 +88,7 @@ class Image extends React.Component {
         <div className="carousel-image-wrapper">
           <img
             src={imageLinks[currentIndex]}
-            alt={`Image ${currentIndex + 1} of ${imageLinks.length}`}
+            alt={`Slide ${currentIndex + 1} of ${imageLinks.length}`}
             className="carousel-image"
           />
 
