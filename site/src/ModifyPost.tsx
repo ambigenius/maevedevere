@@ -18,8 +18,6 @@ type LoadedPost = {
   path: string;
 };
 
-const POST_TYPES: PostType[] = ['Words', 'Lines', 'Motion', 'Sound', 'About'];
-
 function formatDateTime(value?: string) {
   if (!value) return '—';
   try {
@@ -43,31 +41,6 @@ function slugify(title: string): string {
 
 function nowIso() {
   return new Date().toISOString();
-}
-
-function toIsoDate(value: string): string {
-  if (!value) return nowIso();
-  const date = new Date(value.includes('T') ? value : `${value}T00:00:00Z`);
-  return date.toISOString();
-}
-
-function coerceIso(value: unknown): string {
-  if (!value) return nowIso();
-  if (value instanceof Date) return value.toISOString();
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    if (!trimmed) return nowIso();
-    return trimmed.includes('T') ? trimmed : `${trimmed}T00:00:00Z`;
-  }
-  try {
-    const asDate = new Date(value as any);
-    if (!Number.isNaN(asDate.getTime())) {
-      return asDate.toISOString();
-    }
-  } catch (_) {
-    // ignore
-  }
-  return nowIso();
 }
 
 const ModifyPost: React.FC = () => {
