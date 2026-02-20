@@ -33,6 +33,7 @@
   overflow-y: auto;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s ease;
+  text-align: left;
 }
 
 @keyframes slideUp {
@@ -80,6 +81,7 @@
 .header {
   padding: 24px;
   border-bottom: 1px solid #eee;
+  text-align: left;
 }
 
 .title {
@@ -122,6 +124,7 @@
 
 .content {
   padding: 24px;
+  text-align: left;
 }
 
 .videoContainer {
@@ -203,6 +206,7 @@
   line-height: 1.7;
   color: #333;
   white-space: normal;
+  text-align: left;
 }
 
 .markdown {
