@@ -204,7 +204,11 @@ const ModifyPost: React.FC = () => {
       setIsActive(postData.isActive !== false);
       setText(postData.text || '');
 
-      const imageValue = (postData as any).image;
+      const imageValue =
+        (postData as any).image ??
+        (postData.metadata as any)?.imageLinks ??
+        (postData.metadata as any)?.image ??
+        (postData.metadata as any)?.images;
       if (Array.isArray(imageValue)) {
         setImageInput(imageValue.join(', '));
       } else if (typeof imageValue === 'string') {
@@ -318,6 +322,10 @@ const ModifyPost: React.FC = () => {
           const image = ensureImageArray(imageInput);
           (basePost as any).image = image;
           (basePost as any).imageWidth = imageWidth;
+          if (baseMetadata) {
+            if (image && image.length) baseMetadata.imageLinks = image;
+            else delete baseMetadata.imageLinks;
+          }
           break;
         }
         case 'Motion':
@@ -328,6 +336,10 @@ const ModifyPost: React.FC = () => {
           (basePost as any).image = image;
           (basePost as any).imageWidth = imageWidth;
           (basePost as any).audioUrl = audioUrl.trim() || null;
+          if (baseMetadata) {
+            if (image && image.length) baseMetadata.imageLinks = image;
+            else delete baseMetadata.imageLinks;
+          }
           break;
         }
         default:
