@@ -1,6 +1,7 @@
 // server.js
 const express = require('express');
 const path = require('path');
+const crypto = require('crypto');
 // Load environment variables from vars.env at project root
 require('dotenv').config({ path: path.join(__dirname, 'vars.env') });
 const cors = require('cors');
@@ -18,6 +19,115 @@ const ALLOWED_ORIGINS = (process.env.ALLOW_ORIGIN
   : DEFAULT_ALLOWED_ORIGINS).map(origin => origin.trim()).filter(Boolean);
 const OWNER = process.env.GITHUB_OWNER || 'ambigenius';
 const REPO = process.env.GITHUB_REPO || 'mdvbackend';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'nevayroad4eva';
+const ADMIN_SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || `${ADMIN_PASSWORD}_dev_secret`;
+const ADMIN_SESSION_COOKIE = 'admin_session';
+const ADMIN_SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+const isProduction = process.env.NODE_ENV === 'production';
+
+function toBase64Url(value) {
+  return Buffer.from(value, 'utf8')
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
+
+function fromBase64Url(value) {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padLength = (4 - (normalized.length % 4)) % 4;
+  return Buffer.from(normalized + '='.repeat(padLength), 'base64').toString('utf8');
+}
+
+function signValue(value) {
+  return crypto
+    .createHmac('sha256', ADMIN_SESSION_SECRET)
+    .update(value)
+    .digest('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
+
+function createAdminSessionToken() {
+  const payload = {
+    role: 'admin',
+    exp: Date.now() + ADMIN_SESSION_MAX_AGE_MS,
+  };
+  const encodedPayload = toBase64Url(JSON.stringify(payload));
+  const signature = signValue(encodedPayload);
+  return `${encodedPayload}.${signature}`;
+}
+
+function verifyAdminSessionToken(token) {
+  if (!token || typeof token !== 'string') return false;
+  const parts = token.split('.');
+  if (parts.length !== 2) return false;
+
+  const [encodedPayload, signature] = parts;
+  const expectedSignature = signValue(encodedPayload);
+  const signatureBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expectedSignature);
+
+  if (signatureBuffer.length !== expectedBuffer.length) {
+    return false;
+  }
+
+  if (!crypto.timingSafeEqual(signatureBuffer, expectedBuffer)) {
+    return false;
+  }
+
+  try {
+    const payload = JSON.parse(fromBase64Url(encodedPayload));
+    return Boolean(payload && payload.role === 'admin' && Number(payload.exp) > Date.now());
+  } catch {
+    return false;
+  }
+}
+
+function parseCookies(req) {
+  const cookieHeader = req.headers.cookie;
+  if (!cookieHeader) return {};
+
+  return cookieHeader.split(';').reduce((acc, part) => {
+    const [rawName, ...rawValueParts] = part.trim().split('=');
+    if (!rawName) return acc;
+    const rawValue = rawValueParts.join('=');
+    acc[rawName] = decodeURIComponent(rawValue || '');
+    return acc;
+  }, {});
+}
+
+function setAdminSessionCookie(res, token) {
+  res.cookie(ADMIN_SESSION_COOKIE, token, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'lax',
+    maxAge: ADMIN_SESSION_MAX_AGE_MS,
+    path: '/',
+  });
+}
+
+function clearAdminSessionCookie(res) {
+  res.clearCookie(ADMIN_SESSION_COOKIE, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'lax',
+    path: '/',
+  });
+}
+
+function hasValidAdminSession(req) {
+  const cookies = parseCookies(req);
+  return verifyAdminSessionToken(cookies[ADMIN_SESSION_COOKIE]);
+}
+
+function requireAdminSession(req, res, next) {
+  if (!hasValidAdminSession(req)) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  return next();
+}
 
 // Log all incoming requests - add this FIRST to catch everything
 app.use((req, res, next) => {
@@ -67,6 +177,33 @@ app.use((req, res, next) => {
   }
 
   next();
+});
+
+app.post('/api/admin/login', (req, res) => {
+  const { password } = req.body || {};
+
+  if (!password || password !== ADMIN_PASSWORD) {
+    clearAdminSessionCookie(res);
+    return res.status(401).json({ error: 'Invalid password' });
+  }
+
+  const token = createAdminSessionToken();
+  setAdminSessionCookie(res, token);
+  return res.json({ ok: true });
+});
+
+app.get('/api/admin/session', (req, res) => {
+  if (!hasValidAdminSession(req)) {
+    clearAdminSessionCookie(res);
+    return res.status(401).json({ authenticated: false });
+  }
+
+  return res.json({ authenticated: true });
+});
+
+app.post('/api/admin/logout', (_req, res) => {
+  clearAdminSessionCookie(res);
+  return res.json({ ok: true });
 });
 
 // Helper function to get GitHub API headers
@@ -354,7 +491,7 @@ app.get('/api/about', async (req, res) => {
 });
 
 // Main commit route - verify path matches exactly: /api/commit
-app.post('/api/commit', async (req, res) => {
+app.post('/api/commit', requireAdminSession, async (req, res) => {
   console.log('\n=== POST /api/commit route handler called ===');
   console.log('Request received at:', new Date().toISOString());
   console.log('Request method:', req.method);
@@ -574,7 +711,7 @@ app.post('/api/commit', async (req, res) => {
   }
 });
 
-app.delete('/api/commit', async (req, res) => {
+app.delete('/api/commit', requireAdminSession, async (req, res) => {
   console.log('\n=== DELETE /api/commit route handler called ===');
   console.log('Request received at:', new Date().toISOString());
   console.log('Request body:', JSON.stringify(req.body, null, 2));

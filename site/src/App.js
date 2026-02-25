@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import './App.css';
 import HomePage from './HomePage.tsx';
 import AdminPage from './AdminPage';
 import ModifyPost from './ModifyPost.tsx';
+import { getApiBase } from './config.ts';
 
 function AdminAuthGate({ children }) {
   const location = useLocation();
@@ -13,15 +14,82 @@ function AdminAuthGate({ children }) {
   );
   const [password, setPassword] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const checkSession = useCallback(async () => {
+    try {
+      const response = await fetch(`${getApiBase()}/admin/session`, {
+        credentials: 'include',
+      });
+      setIsAuthenticated(response.ok);
+    } catch {
+      setIsAuthenticated(false);
+    } finally {
+      setIsCheckingSession(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isAdminRoute) {
+      setIsCheckingSession(false);
+      return;
+    }
+    setIsCheckingSession(true);
+    checkSession();
+  }, [checkSession, isAdminRoute]);
 
   if (!isAdminRoute) {
     return children;
   }
 
-  if (!submitted || password !== 'nevayroad4eva') {
-    const handleSubmit = (event) => {
+  const handleLogout = async () => {
+    try {
+      await fetch(`${getApiBase()}/admin/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } finally {
+      setIsAuthenticated(false);
+      setSubmitted(false);
+      setPassword('');
+    }
+  };
+
+  if (isCheckingSession) {
+    return (
+      <div className="auth-gate">
+        <div className="auth-card">
+          <h2>Checking session…</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    const handleSubmit = async (event) => {
       event.preventDefault();
       setSubmitted(true);
+      try {
+        const response = await fetch(`${getApiBase()}/admin/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({ password }),
+        });
+
+        if (!response.ok) {
+          setIsAuthenticated(false);
+          return;
+        }
+
+        setIsAuthenticated(true);
+        setPassword('');
+      } catch {
+        setIsAuthenticated(false);
+      }
     };
 
     return (
@@ -36,7 +104,7 @@ function AdminAuthGate({ children }) {
             onChange={(e) => setPassword(e.target.value)}
             autoFocus
           />
-          {submitted && password !== 'nevayroad4eva' && (
+          {submitted && !isAuthenticated && (
             <p className="error">Incorrect password. Try again.</p>
           )}
           <button type="submit">Enter</button>
@@ -45,7 +113,30 @@ function AdminAuthGate({ children }) {
     );
   }
 
-  return children;
+  return (
+    <>
+      <button
+        type="button"
+        onClick={handleLogout}
+        style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          padding: '10px 20px',
+          fontSize: '16px',
+          backgroundColor: '#444',
+          color: '#fff',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          zIndex: 1001,
+        }}
+      >
+        Logout
+      </button>
+      {children}
+    </>
+  );
 }
 
 function App() {
