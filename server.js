@@ -99,20 +99,22 @@ function parseCookies(req) {
 }
 
 function setAdminSessionCookie(res, token) {
+  const sameSite = isProduction ? 'none' : 'lax';
   res.cookie(ADMIN_SESSION_COOKIE, token, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: 'lax',
+    sameSite,
     maxAge: ADMIN_SESSION_MAX_AGE_MS,
     path: '/',
   });
 }
 
 function clearAdminSessionCookie(res) {
+  const sameSite = isProduction ? 'none' : 'lax';
   res.clearCookie(ADMIN_SESSION_COOKIE, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: 'lax',
+    sameSite,
     path: '/',
   });
 }
